@@ -1,5 +1,6 @@
 from groq import Groq
 from openai import OpenAI
+
 import os
 
 class Bot:
@@ -10,11 +11,11 @@ class Bot:
     """
 
     def __init__(self, api_key: str, model: str, provider: str, language: str, temperature: float):
-        self.API_KEY = api_key
-        self.MODEL = model
-        self.PROVIDER = provider
-        self.LANGUAGE = language
-        self.TEMPERATURE = temperature
+        self.API_KEY: str = api_key
+        self.MODEL: str = model
+        self.PROVIDER: str = provider
+        self.LANGUAGE: str = language
+        self.TEMPERATURE: float = temperature
 
         self.init_config()
 
@@ -26,11 +27,11 @@ class Bot:
         """
 
         if self.LANGUAGE == "EN":
-            context = "You are a virtual assistant. You must speak english. Your manner must be cordial."
+            context: str = "You are a virtual assistant. You must speak english. Your manner must be cordial."
         elif self.LANGUAGE == "ES":
-            context = "Eres un asistente virtual. Debes hablar en español. Tu trato debe ser cordial."
+            context: str = "Eres un asistente virtual. Debes hablar en español. Tu trato debe ser cordial."
 
-        self.message_history = [{"role": "system", "content": context}]
+        self.message_history: list[dict[str, str]] = [{"role": "system", "content": context}]
 
         if self.PROVIDER == "openai":
             self.init_openai()
@@ -88,7 +89,7 @@ class Bot:
             temperature=self.TEMPERATURE,
         )
 
-        response = completion.choices[0].message.content or ""
+        response: str = completion.choices[0].message.content or ""
 
         self.message_history.append({"role": "assistant", "content": response})
 
@@ -116,7 +117,7 @@ class Bot:
             stop=None,
         )
 
-        response = ""
+        response: str = ""
 
         for chunk in completion:
             response += chunk.choices[0].delta.content or ""

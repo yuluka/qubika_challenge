@@ -5,3 +5,6 @@ __pycache__
 
 data/
 db/
+
+jarvis-google-api-key.json
+response_speech.mp3

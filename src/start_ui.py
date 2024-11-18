@@ -1,6 +1,7 @@
 from model.chat.chatbot import Bot
 from model.RAG.rag import RAG
 from model.web_scraper.web_scraper import load_urls, scrape_pages
+from model.speech.text_to_speech import TextToSpeech
 
 import streamlit as st
 import tkinter as tk
@@ -72,6 +73,9 @@ def init_config():
     if not "api_key" in st.session_state:
         st.session_state.api_key = os.getenv("OPENAI_API_KEY") if st.session_state.selected_provider == "openai" else os.getenv("GROQ_API_KEY")
 
+    if not "google_api_key" in st.session_state:
+        st.session_state.google_api_key = os.getenv("GOOGLE_CLOUD_API_KEY")
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -88,6 +92,14 @@ def init_config():
     if not "rag" in st.session_state:
         rag: RAG = RAG()
         st.session_state.rag = rag
+
+    if not "text2speech" in st.session_state:
+        text2speech: TextToSpeech = TextToSpeech(
+            st.session_state.google_api_key,
+            st.session_state.selected_language
+        )
+
+        st.session_state.text2speech = text2speech
 
 
 def start_ui():
@@ -106,7 +118,9 @@ def start_ui():
         flex-direction: column;
     }
 
-    .st-emotion-cache-jmw8un {
+
+
+    [data-testid="stChatMessageAvatarUser"], [data-testid="stChatMessageAvatarAssistant"] {
         display: none;
     }
 
@@ -152,6 +166,8 @@ def start_ui():
 
         with st.chat_message("assistant"):
             st.markdown(response)
+
+        speech_response(response)
 
 
 def start_side_bar():
@@ -275,6 +291,17 @@ def chat(message: str) -> str:
     st.session_state.messages.append({"role": "assistant", "content": response})
 
     return response
+
+
+def speech_response(response: str):
+    """
+    Sends a speech response to the user.
+
+    :param response: The text to be spoken.
+    :type response: str
+    """
+
+    st.session_state.text2speech.speech_response(response)
 
 
 start_ui()

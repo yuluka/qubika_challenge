@@ -13,8 +13,7 @@ class RAG:
     """
     Retrieval Augmented Generation (RAG) model.
 
-    This class is used to generate embeddings for a set of documents, retrieve relevant information based on a query, and augment the query with the 
-    relevant information.
+    This class is used to generate embeddings for a set of documents, retrieve relevant information based on a query, and augment the query with the relevant information.
     """
 
     def __init__(self, data_path: str = "data", chroma_path: str = "db", documents_type: str = "json", reload_db: bool = False):
