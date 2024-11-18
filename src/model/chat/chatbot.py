@@ -10,12 +10,13 @@ class Bot:
     The Bot class is used to interact with the OpenAI or Llama3 models.
     """
 
-    def __init__(self, api_key: str, model: str, provider: str, language: str, temperature: float):
+    def __init__(self, api_key: str, model: str, provider: str, language: str, temperature: float, context: str = ""):
         self.API_KEY: str = api_key
         self.MODEL: str = model
         self.PROVIDER: str = provider
         self.LANGUAGE: str = language
         self.TEMPERATURE: float = temperature
+        self.CONTEXT: str = context
 
         self.init_config()
 
@@ -27,9 +28,9 @@ class Bot:
         """
 
         if self.LANGUAGE == "EN":
-            context: str = "You are a virtual assistant. You must speak english. Your manner must be cordial."
+            context: str = "You are a virtual assistant. You must speak english. Your manner must be cordial." if self.CONTEXT == "" else self.CONTEXT
         elif self.LANGUAGE == "ES":
-            context: str = "Eres un asistente virtual. Debes hablar en español. Tu trato debe ser cordial."
+            context: str = "Eres un asistente virtual. Debes hablar en español. Tu trato debe ser cordial." if self.CONTEXT == "" else self.CONTEXT
 
         self.message_history: list[dict[str, str]] = [{"role": "system", "content": context}]
 

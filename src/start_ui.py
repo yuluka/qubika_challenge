@@ -67,20 +67,15 @@ AVAILABLE_VOICES: dict[str, list[str]] = {
 }
 
 
-# temperature: float = 1.0
-# selected_provider: str = "groq"
-# selected_model: str = "llama3-70b-8192"
-# selected_language: str = "ES"
-# api_key: str = os.getenv("OPENAI_API_KEY") if selected_provider == "openai" else os.getenv("GROQ_API_KEY")
-# print("BOT VERSIÓN", chatbot.MODEL, chatbot.PROVIDER)
-
-
 def init_config():
     """
     Initialize the configuration of the chatbot.
 
     Save each configuration parameter in the Streamlit session state to keep the state between Streamlit runs.
     """
+
+    if "current_screen" not in st.session_state:
+        st.session_state.current_screen = "main"   
 
     if not "selected_language" in st.session_state:
         st.session_state.selected_language = "ES"
@@ -141,7 +136,6 @@ def start_ui():
     """
 
     init_config()
-    start_side_bar()
 
     st.markdown(
     """
@@ -151,7 +145,21 @@ def start_ui():
         flex-direction: column;
     }
 
+    .st-key-go_to_comparison {
+        display: inline-flex;
+        justify-content: center;
+        position: fixed;
+        z-index: 9999;
+    }
 
+    .st-key-btn_compare {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 105px;
+        margin: auto;
+        margin-top: 10px;
+    }
 
     [data-testid="stChatMessageAvatarUser"], [data-testid="stChatMessageAvatarAssistant"] {
         display: none;
@@ -180,11 +188,40 @@ def start_ui():
     p {
         padding: 5px;
     }
+
+    .comparison-bubble {
+        display: inline-block;
+        background-color: #00bcd4; /* Color de fondo */
+        color: white; /* Color del texto */
+        padding: 10px 20px; /* Espaciado interno */
+        border-radius: 50px; /* Bordes redondeados para la forma */
+        text-align: center; /* Centrar el texto */
+        font-size: 16px; /* Tamaño de la fuente */
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Sombra para efecto 3D */
+    }
     </style>
     """,
         unsafe_allow_html=True,
     )
     
+    if st.button("", key="go_to_comparison", icon=":material/text_compare:"):
+        st.session_state.current_screen = "comparison" if st.session_state.current_screen == "main" else "main"
+
+    if st.session_state.current_screen == "main":
+        start_main_window()
+    elif st.session_state.current_screen == "comparison":
+        start_comparison_window()
+
+
+def start_main_window():
+    """
+    Start the main window of the Streamlit UI.
+
+    The main window contains the chatbot and the configuration options for the chatbot.
+    """
+
+    start_main_side_bar()
+
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
@@ -203,11 +240,11 @@ def start_ui():
         speech_response(response)
 
 
-def start_side_bar():
+def start_main_side_bar():
     """
-    Start the Streamlit sidebar.
+    Start the Streamlit sidebar for the main window.
 
-    The sidebar contains the configuration options for the chatbot.
+    The sidebar contains the configuration options for the chatbot in the main window.
     """
 
     with st.sidebar:
@@ -272,6 +309,114 @@ def start_side_bar():
             reload_knowledge_base()
 
 
+def start_comparison_window():
+    """
+    Start the comparison window of the Streamlit UI.
+
+    The comparison window contains the mechanism for comparing two news articles and the configuration options for the comparison chatbot.
+    """
+
+    start_comparison_side_bar()
+
+    col1, col2 = st.columns(2)
+
+    col1.write("<h2 style='text-align: center;'>Noticia 1</h2>", unsafe_allow_html=True)
+    col2.write("<h2 style='text-align: center;'>Noticia 2</h2>", unsafe_allow_html=True)
+
+    if st.button("Comparar", key="btn_compare"):
+        response1: str = "No se han proporcionado noticias para comparar."
+        response2: str = "No se han proporcionado noticias para comparar."
+
+        if st.session_state.news1 != "" and st.session_state.news2 != "":
+            response1: str = ""
+            response2: str = ""
+
+        # response1: str = st.session_state.comparison_bot_1.chat(st.session_state.news1)
+        # response2: str = st.session_state.comparison_bot_2.chat(st.session_state.news2)
+
+        # col1.write(response1)
+        # col2.write(response2)
+
+        with col1:
+            st.markdown(f'<div class="comparison-bubble">{response1}</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown(f'<div class="comparison-bubble">{response2}</div>', unsafe_allow_html=True)
+
+
+def start_comparison_side_bar():
+    """
+    Start the Streamlit sidebar for the comparison window.
+
+    The sidebar contains the configuration options for the comparison chatbot in the comparison window.
+    """
+    
+    if not "comparison_bot_1" in st.session_state or not "comparison_bot_2" in st.session_state:
+        comparison_bot: Bot = Bot(
+            st.session_state.api_key,
+            st.session_state.selected_model,
+            st.session_state.selected_provider,
+            st.session_state.selected_language,
+            st.session_state.temperature
+        )
+
+        st.session_state.comparison_bot_1 = comparison_bot
+        st.session_state.comparison_bot_2 = comparison_bot
+
+    with st.sidebar:
+        st.header("Configuración")
+
+        st.write("<b>Noticias a comparar</b>", unsafe_allow_html=True)
+        st.session_state.news1 = st.text_input("Noticias a comparar", label_visibility="collapsed", placeholder="Noticia 1")
+        st.session_state.news2 = st.text_input("Noticias a comparar 2", label_visibility="collapsed", placeholder="Noticia 2")
+
+        st.header("Configuración del Modelo")
+
+        st.session_state.temperature_comparison = st.slider(
+            label="Temperatura de Respuesta", 
+            min_value=0.0, 
+            max_value=2.0, 
+            value=1.0
+        )
+
+        st.session_state.selected_model_comparison = AVAILABLE_MODELS.get(
+            st.selectbox(
+                "Modelo de lenguaje",
+                AVAILABLE_MODELS.keys()
+            )
+        )
+
+        st.session_state.selected_provider_comparison = LLM_PROVIDERS.get(st.session_state.selected_model_comparison)
+
+        st.session_state.selected_language_comparison = AVAILABLE_LANGUAGES.get( 
+            st.selectbox(
+                "Lenaguaje",
+                AVAILABLE_LANGUAGES.keys()
+            )
+        )
+
+        st.header("Configuración de Voz")
+        
+        st.session_state.selected_voice_gender_comparison = AVAILABLE_VOICE_GENDERS.get(
+            st.selectbox(
+                "Género de Voz",
+                AVAILABLE_VOICE_GENDERS
+            )
+        )
+        
+        voices: list[str] = AVAILABLE_VOICES.get(st.session_state.selected_voice_gender_comparison, [])
+        voices = [voice for voice in voices if voice[:2] == st.session_state.selected_language_comparison.lower()]
+
+        st.session_state.selected_voice_comparison = AVAILABLE_VOICES.get(
+            st.selectbox(
+                "Voz",
+                voices
+            )
+        )
+
+        if st.button("Recargar modelo"):
+            reload_comparison_model()
+
+
 def save_urls(urls: str):
     """
     Save the URLs to scrape from the given file path.
@@ -327,6 +472,25 @@ def reload_chatbot():
 
     st.session_state.bot = chatbot
     st.session_state.text2speech = text2speech
+
+
+def reload_comparison_model():
+    """
+    Reload the comparison model with the latest configuration.
+    """
+
+    st.session_state.api_key = os.getenv("OPENAI_API_KEY") if st.session_state.selected_provider_comparison == "openai" else os.getenv("GROQ_API_KEY")
+
+    comparison_bot: Bot = Bot(
+        st.session_state.api_key,
+        st.session_state.selected_model_comparison,
+        st.session_state.selected_provider_comparison,
+        st.session_state.selected_language_comparison,
+        st.session_state.temperature_comparison 
+    )
+
+    st.session_state.comparison_bot_1 = comparison_bot
+    st.session_state.comparison_bot_2 = comparison_bot
 
 
 def chat(message: str) -> str:
