@@ -121,9 +121,10 @@ Answer the question based on the above context: {question}
                 embedding_function=OpenAIEmbeddings(),
             )
 
+            self.is_data = True
+
             return db
 
-        print(len(chunks))
         db: Chroma = Chroma.from_documents(
             documents=chunks, 
             embedding=OpenAIEmbeddings(),

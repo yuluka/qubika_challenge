@@ -8,7 +8,6 @@ from tkinter import messagebox
 
 from dotenv import load_dotenv
 import os
-from streamlit_modal import Modal
 
 load_dotenv()
 
@@ -43,27 +42,68 @@ AVAILABLE_LANGUAGES: dict[str, str] = {
     "English": "EN"
 }
 
-temperature: float = 1.0
-selected_provider: str = "groq"
-selected_model: str = "llama3-70b-8192"
-selected_language: str = "ES"
-api_key: str = os.getenv("OPENAI_API_KEY")
+# temperature: float = 1.0
+# selected_provider: str = "groq"
+# selected_model: str = "llama3-70b-8192"
+# selected_language: str = "ES"
+# api_key: str = os.getenv("OPENAI_API_KEY") if selected_provider == "openai" else os.getenv("GROQ_API_KEY")
+# print("BOT VERSIÓN", chatbot.MODEL, chatbot.PROVIDER)
 
-rag: RAG = RAG()
-chatbot: Bot = Bot(api_key, selected_model, selected_language)
+
+def init_config():
+    """
+    Initialize the configuration of the chatbot.
+
+    Save each configuration parameter in the Streamlit session state to keep the state between Streamlit runs.
+    """
+
+    if not "selected_language" in st.session_state:
+        st.session_state.selected_language = "ES"
+
+    if not "selected_model" in st.session_state:
+        st.session_state.selected_model = "llama3-70b-8192"
+    
+    if not "selected_provider" in st.session_state:
+        st.session_state.selected_provider = LLM_PROVIDERS.get(st.session_state.selected_model)
+
+    if not "temperature" in st.session_state:
+        st.session_state.temperature = 1.0
+
+    if not "api_key" in st.session_state:
+        st.session_state.api_key = os.getenv("OPENAI_API_KEY") if st.session_state.selected_provider == "openai" else os.getenv("GROQ_API_KEY")
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    if not "bot" in st.session_state:
+        chatbot: Bot = Bot(
+            st.session_state.api_key,
+            st.session_state.selected_model,
+            st.session_state.selected_provider,
+            st.session_state.selected_language,
+            st.session_state.temperature 
+        )
+        st.session_state.bot = chatbot
+    
+    if not "rag" in st.session_state:
+        rag: RAG = RAG()
+        st.session_state.rag = rag
 
 
 def start_ui():
+    """
+    Start the Streamlit UI.
+    """
+
+    init_config()
+    start_side_bar()
+
     st.markdown(
     """
     <style>
     .stVerticalBlock {
         display: flex;
         flex-direction: column;
-    }
-
-    .st-emotion-cache-4zpzjl {
-        display: none;
     }
 
     .st-emotion-cache-jmw8un {
@@ -97,57 +137,60 @@ def start_ui():
     """,
         unsafe_allow_html=True,
     )
-
-    start_side_bar()
-
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-        
+    
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    prompt = st.chat_input("Escribe tu mensaje...")
+    prompt: str = st.chat_input("Escribe tu mensaje")
 
     if prompt:
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        response = chat(prompt)
-        # response = f"Echo: {prompt}"
+        response: str = chat(prompt)
 
         with st.chat_message("assistant"):
             st.markdown(response)
 
 
 def start_side_bar():
+    """
+    Start the Streamlit sidebar.
+
+    The sidebar contains the configuration options for the chatbot.
+    """
+
     with st.sidebar:
         st.header("Configuración")
 
-        temperature = st.slider(
+        st.session_state.temperature = st.slider(
             label="Temperatura de Respuesta", 
             min_value=0.0, 
             max_value=2.0, 
             value=1.0
         )
 
-        selected_model = AVAILABLE_MODELS.get(
+        st.session_state.selected_model = AVAILABLE_MODELS.get(
             st.selectbox(
                 "Modelo de lenguaje",
                 AVAILABLE_MODELS.keys()
             )
         )
 
-        selected_provider = LLM_PROVIDERS.get(selected_model)
+        st.session_state.selected_provider = LLM_PROVIDERS.get(st.session_state.selected_model)
 
-        selected_language = AVAILABLE_LANGUAGES.get( 
+        st.session_state.selected_language = AVAILABLE_LANGUAGES.get( 
             st.selectbox(
                 "Lenaguaje",
                 AVAILABLE_LANGUAGES.keys()
             )
         )
 
-        st.header("Enlaces de Origen")
+        if st.button("Recargar Chatbot", key="btn_reload_chatbot"):
+            reload_chatbot()
+
+        st.header("Base de Conocimiento")
 
         save_urls(
             st.text_area(
@@ -169,11 +212,11 @@ def save_urls(urls: str):
     :type urls: str
     """
 
-    urls = urls.split("\n")
-    urls = [url for url in urls if url.strip()]
+    urls_list: list[str] = urls.split("\n")
+    urls_list = [url for url in urls_list if url.strip()]
     
     with open(SOURCE_URLS_PATH, "w") as file:
-        file.write("\n".join(urls))
+        file.write("\n".join(urls_list))
 
 
 def reload_knowledge_base():
@@ -182,15 +225,32 @@ def reload_knowledge_base():
     """
 
     scrape_pages(DATA_PATH, SOURCE_URLS_PATH)
-    rag = RAG(
+
+    rag: RAG = RAG(
         data_path=DATA_PATH, 
         chroma_path="db", 
         reload_db=True
     )
 
+    st.session_state.rag = rag
 
-def reload_config():
-    chatbot = Bot(api_key, selected_model, selected_language)
+
+def reload_chatbot():
+    """
+    Reload the chatbot with the latest configuration.
+    """
+
+    st.session_state.api_key = os.getenv("OPENAI_API_KEY") if st.session_state.selected_provider == "openai" else os.getenv("GROQ_API_KEY")
+
+    chatbot: Bot = Bot(
+        st.session_state.api_key,
+        st.session_state.selected_model,
+        st.session_state.selected_provider,
+        st.session_state.selected_language,
+        st.session_state.temperature 
+    )
+
+    st.session_state.bot = chatbot
 
 
 def chat(message: str) -> str:
@@ -205,12 +265,13 @@ def chat(message: str) -> str:
 
     st.session_state.messages.append({"role": "user", "content": message})
     
-    message = rag.augment_query(message)
+    message = st.session_state.rag.augment_query(message)
+    print("Mensaje a enviar al modelo:", message)
 
     if message == "No data available.":
         return message
 
-    response = chatbot.chat(st.session_state.messages)
+    response: str = st.session_state.bot.chat(message)
     st.session_state.messages.append({"role": "assistant", "content": response})
 
     return response

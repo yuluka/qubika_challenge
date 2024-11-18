@@ -9,10 +9,12 @@ class Bot:
     The Bot class is used to interact with the OpenAI or Llama3 models.
     """
 
-    def __init__(self, api_key: str, model: str, language: str):
+    def __init__(self, api_key: str, model: str, provider: str, language: str, temperature: float):
         self.API_KEY = api_key
         self.MODEL = model
+        self.PROVIDER = provider
         self.LANGUAGE = language
+        self.TEMPERATURE = temperature
 
         self.init_config()
 
@@ -30,10 +32,10 @@ class Bot:
 
         self.message_history = [{"role": "system", "content": context}]
 
-        if self.MODEL == "gpt-3.5-turbo" or self.MODEL == "gpt-4o":
+        if self.PROVIDER == "openai":
             self.init_openai()
-        elif self.MODEL == "llama3-70b-8192":
-            self.init_groq_llama3()
+        elif self.PROVIDER == "groq":
+            self.init_groq()
 
     def init_openai(self):
         """
@@ -44,7 +46,7 @@ class Bot:
             api_key=self.API_KEY,
         )
 
-    def init_groq_llama3(self):
+    def init_groq(self):
         """
         Initializes the Llama3 client.
         """
@@ -53,8 +55,7 @@ class Bot:
             api_key=self.API_KEY,
         )
 
-
-    def chat(self, message_history: list[dict[str, str]]) -> str:
+    def chat(self, message: str) -> str:
         """
         Sends a message to the model and returns the response.
 
@@ -64,10 +65,10 @@ class Bot:
         :rtype: str
         """
 
-        if self.MODEL == "gpt-3.5-turbo" or self.MODEL == "gpt-4o":
-            return self.chat_openai(message_history)
-        elif(self.MODEL == "llama3-70b-8192"):
-            return self.chat_groq(message_history)
+        if self.PROVIDER == "openai":
+            return self.chat_openai(message)
+        elif self.PROVIDER == "groq":
+            return self.chat_groq(message)
 
     def chat_openai(self, message: str) -> str:
         """
@@ -79,20 +80,23 @@ class Bot:
         :rtype: str
         """
 
+        self.message_history.append({"role": "user", "content": message})
+
         completion = self.client.chat.completions.create(
             model=self.MODEL,
             messages=self.message_history,
-            temperature=1,
+            temperature=self.TEMPERATURE,
         )
 
         response = completion.choices[0].message.content or ""
 
+        self.message_history.append({"role": "assistant", "content": response})
+
         return response
 
-
-    def chat_groq(self, message_history: list[dict[str, str]]) -> str:
+    def chat_groq(self, message: str) -> str:
         """
-        Sends a message to the llama3 model and returns the response.
+        Sends a message to a model hosted by Groq and returns the response.
 
         :param message: The message to send to the model.
         :type message: str
@@ -100,10 +104,12 @@ class Bot:
         :rtype: str
         """
 
+        self.message_history.append({"role": "user", "content": message})
+
         completion = self.client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=message_history,
-            temperature=1,
+            model=self.MODEL,
+            messages=self.message_history,
+            temperature=self.TEMPERATURE,
             max_tokens=8192,
             top_p=1,
             stream=True,
@@ -114,5 +120,7 @@ class Bot:
 
         for chunk in completion:
             response += chunk.choices[0].delta.content or ""
+
+        self.message_history.append({"role": "assistant", "content": response})
 
         return response
