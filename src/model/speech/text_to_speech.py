@@ -12,13 +12,15 @@ class TextToSpeech:
     TextToSpeech class is a class that converts text to speech using the Google Cloud Text-to-Speech API.
     """
 
-    def __init__(self, google_api_key, language):
-        self.base_path = os.path.dirname(os.path.abspath(__file__))
+    def __init__(self, google_api_key: str, language: str, voice: str, gender: str):
+        self.base_path: str = os.path.dirname(os.path.abspath(__file__))
         self.base_path = os.path.dirname(self.base_path)
         self.base_path = os.path.dirname(self.base_path)
 
-        self.LANGUAGE = language
-        self.GOOGLE_API_KEY = google_api_key
+        self.LANGUAGE: str = language
+        self.VOICE: str = voice
+        self.GOOGLE_API_KEY: str = google_api_key
+        self.GENDER: str = gender
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.GOOGLE_API_KEY
 
         self.player = None
@@ -48,11 +50,13 @@ class TextToSpeech:
         synthesis_input = texttospeech.SynthesisInput(text=text)
 
         language_code = "es-US" if self.LANGUAGE == "ES" else "en-US"
+        ssml_gender = texttospeech.SsmlVoiceGender.MALE if self.GENDER == "male" else texttospeech.SsmlVoiceGender.FEMALE
 
         voice = texttospeech.VoiceSelectionParams(
             language_code=language_code,
-            name="es-US-Neural2-C" if self.LANGUAGE == "ES" else "en-US-Neural2-J",
-            ssml_gender=texttospeech.SsmlVoiceGender.MALE,
+            # name="es-US-Neural2-C" if self.LANGUAGE == "ES" else "en-US-Neural2-J",
+            name=self.VOICE,
+            ssml_gender=ssml_gender,
         )
 
         audio_config = texttospeech.AudioConfig(

@@ -43,6 +43,30 @@ AVAILABLE_LANGUAGES: dict[str, str] = {
     "English": "EN"
 }
 
+AVAILABLE_VOICE_GENDERS: dict[str, str] = {
+    "Masculino": "male",
+    "Femenino": "female"
+}
+
+AVAILABLE_VOICES: dict[str, list[str]] = {
+    "male": [
+        "es-US-Neural2-B", "es-US-Neural2-C", "es-US-News-D", "es-US-News-E", "es-US-Polyglot-1",
+        "es-US-Standard-B", "es-US-Standard-C", "es-US-Studio-B", "es-US-Wavenet-B", "es-US-Wavenet-C",
+        "en-US-Casual-K", "en-US-Journey-D", "en-US-Neural2-A", "en-US-Neural2-D", "en-US-Neural2-I",
+        "en-US-Neural2-J", "en-US-News-N", "en-US-Polyglot-1", "en-US-Standard-A", "en-US-Standard-B",
+        "en-US-Standard-D", "en-US-Standard-I", "en-US-Standard-J", "en-US-Studio-Q", "en-US-Wavenet-A",
+        "en-US-Wavenet-B", "en-US-Wavenet-D", "en-US-Wavenet-I", "en-US-Wavenet-J"
+    ],
+    "female": [
+        "es-US-Neural2-A", "es-US-News-F", "es-US-News-G", "es-US-Standard-A", "es-US-Wavenet-A",
+        "en-US-Journey-F", "en-US-Journey-O", "en-US-Neural2-C", "en-US-Neural2-E", "en-US-Neural2-F", 
+        "en-US-Neural2-G", "en-US-Neural2-H", "en-US-News-K", "en-US-News-L", "en-US-Standard-C", 
+        "en-US-Standard-E", "en-US-Standard-F", "en-US-Standard-G", "en-US-Standard-H", "en-US-Studio-O", 
+        "en-US-Wavenet-C", "en-US-Wavenet-E", "en-US-Wavenet-F", "en-US-Wavenet-G", "en-US-Wavenet-H"
+    ]
+}
+
+
 # temperature: float = 1.0
 # selected_provider: str = "groq"
 # selected_model: str = "llama3-70b-8192"
@@ -73,9 +97,6 @@ def init_config():
     if not "api_key" in st.session_state:
         st.session_state.api_key = os.getenv("OPENAI_API_KEY") if st.session_state.selected_provider == "openai" else os.getenv("GROQ_API_KEY")
 
-    if not "google_api_key" in st.session_state:
-        st.session_state.google_api_key = os.getenv("GOOGLE_CLOUD_API_KEY")
-
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -93,10 +114,22 @@ def init_config():
         rag: RAG = RAG()
         st.session_state.rag = rag
 
+
+    if not "google_api_key" in st.session_state:
+        st.session_state.google_api_key = os.getenv("GOOGLE_CLOUD_API_KEY")
+
+    if not "selected_voice_gender" in st.session_state:
+        st.session_state.selected_voice_gender = "male"
+
+    if not "selected_voice" in st.session_state:
+        st.session_state.selected_voice = "es-US-Neural2-C"
+
     if not "text2speech" in st.session_state:
         text2speech: TextToSpeech = TextToSpeech(
             st.session_state.google_api_key,
-            st.session_state.selected_language
+            st.session_state.selected_language,
+            st.session_state.selected_voice,
+            st.session_state.selected_voice_gender
         )
 
         st.session_state.text2speech = text2speech
@@ -203,6 +236,25 @@ def start_side_bar():
             )
         )
 
+        st.header("Configuración de Voz")
+        
+        st.session_state.selected_voice_gender = AVAILABLE_VOICE_GENDERS.get(
+            st.selectbox(
+                "Género de Voz",
+                AVAILABLE_VOICE_GENDERS
+            )
+        )
+        
+        voices: list[str] = AVAILABLE_VOICES.get(st.session_state.selected_voice_gender, [])
+        voices = [voice for voice in voices if voice[:2] == st.session_state.selected_language.lower()]
+
+        st.session_state.selected_voice = AVAILABLE_VOICES.get(
+            st.selectbox(
+                "Voz",
+                voices
+            )
+        )
+
         if st.button("Recargar Chatbot", key="btn_reload_chatbot"):
             reload_chatbot()
 
@@ -266,7 +318,15 @@ def reload_chatbot():
         st.session_state.temperature 
     )
 
+    text2speech: TextToSpeech = TextToSpeech(
+        st.session_state.google_api_key,
+        st.session_state.selected_language,
+        st.session_state.selected_voice,
+        st.session_state.selected_voice_gender
+    )
+
     st.session_state.bot = chatbot
+    st.session_state.text2speech = text2speech
 
 
 def chat(message: str) -> str:
