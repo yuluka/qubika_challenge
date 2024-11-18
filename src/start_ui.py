@@ -182,7 +182,11 @@ def reload_knowledge_base():
     """
 
     scrape_pages(DATA_PATH, SOURCE_URLS_PATH)
-    # rag = RAG(DATA_PATH, "db")
+    rag = RAG(
+        data_path=DATA_PATH, 
+        chroma_path="db", 
+        reload_db=True
+    )
 
 
 def reload_config():

@@ -17,7 +17,7 @@ class RAG:
     relevant information.
     """
 
-    def __init__(self, data_path: str = "data", chroma_path: str = "db", documents_type: str = "json"):
+    def __init__(self, data_path: str = "data", chroma_path: str = "db", documents_type: str = "json", reload_db: bool = False):
         self.DATA_PATH: str = data_path
         self.CHROMA_PATH: str = chroma_path
         self.is_data: bool = False
@@ -32,14 +32,14 @@ Answer the question based only on the context below:
 Answer the question based on the above context: {question}
 """
 
-        if not os.path.exists(self.CHROMA_PATH):
+        if not os.path.exists(self.CHROMA_PATH) or reload_db:
             if os.path.exists(self.DATA_PATH):
                 documents: list[Document] = self.load_documents(documents_type)
                 chunks: list[Document] = self.split_documents(documents)
-                self.db: Chroma = self.generate_n_save_embeddings(chunks)
+                self.db: Chroma = self.generate_n_save_embeddings(chunks, reload_db)
             
         else:
-            self.db: Chroma = self.generate_n_save_embeddings([])
+            self.db: Chroma = self.generate_n_save_embeddings([], reload_db)
 
 
     def load_documents(self, documents_type: str) -> list[Document]:
@@ -105,7 +105,7 @@ Answer the question based on the above context: {question}
 
         return chunks
 
-    def generate_n_save_embeddings(self, chunks: list[Document]) -> Chroma:
+    def generate_n_save_embeddings(self, chunks: list[Document], reload_db: bool) -> Chroma:
         """
         Generate and save the embeddings for the documents in a Chroma database.
 
@@ -115,15 +115,16 @@ Answer the question based on the above context: {question}
         :rtype: Chroma
         """
 
-        # if os.path.exists(self.CHROMA_PATH):
-        #     db = Chroma(
-        #         persist_directory=self.CHROMA_PATH,
-        #         embedding_function=OpenAIEmbeddings(),
-        #     )
+        if os.path.exists(self.CHROMA_PATH) and not reload_db:
+            db: Chroma = Chroma(
+                persist_directory=self.CHROMA_PATH,
+                embedding_function=OpenAIEmbeddings(),
+            )
 
-        #     return db
+            return db
 
-        db = Chroma.from_documents(
+        print(len(chunks))
+        db: Chroma = Chroma.from_documents(
             documents=chunks, 
             embedding=OpenAIEmbeddings(),
             persist_directory=self.CHROMA_PATH,
@@ -147,7 +148,7 @@ Answer the question based on the above context: {question}
         :rtype: list[Document]
         """
 
-        results = db.similarity_search(
+        results: list[Document] = db.similarity_search(
             query=query,
             k=n,
         )
@@ -170,12 +171,12 @@ Answer the question based on the above context: {question}
         if not self.is_data:
             return "No data available."
 
-        relevant_info = self.retrieve_relevant_info(self.db, query)
+        relevant_info: list[Document] = self.retrieve_relevant_info(self.db, query)
 
-        context = "\n\n---\n\n".join([doc.page_content for doc in relevant_info])
-        prompt_template = ChatPromptTemplate.from_template(self.PROMPT_TEMPLATE)
+        context: str = "\n\n---\n\n".join([doc.page_content for doc in relevant_info])
+        prompt_template: ChatPromptTemplate = ChatPromptTemplate.from_template(self.PROMPT_TEMPLATE)
 
-        augmented_query = prompt_template.format(
+        augmented_query: str = prompt_template.format(
             context=context,
             question=query,
         )
