@@ -28,12 +28,12 @@ Por favor, sigue estas instrucciones al pie de la letra:
 """
 
 
-def scrape_pages(data_path: str, urls_path: str) -> bool:
+def scrape_pages(data_path: str, urls_path: str | list[str], retry: bool = True) -> bool:
     """
     Scrape the pages from the URLs in the source_urls.txt file.
 
-    :param data_path: The path to save the extracted data.
-    :type data_path: str
+    :param data_path: The path to save the extracted data or a list with the urls.
+    :type data_path: str | list[str]
     :param urls_path: The path to the file containing the URLs.
     :type urls_path: str
     :return: True if the data was saved successfully, False otherwise.
@@ -43,14 +43,14 @@ def scrape_pages(data_path: str, urls_path: str) -> bool:
     # SOURCE_URLS: list[str] = [""]
     is_data_path(data_path)
 
-    SOURCE_URLS: list[str] = load_urls(urls_path)
+    SOURCE_URLS: list[str] = load_urls(urls_path) if isinstance(urls_path, str) else urls_path
     counter: int = 0
 
     try:
         for url in SOURCE_URLS:
             page_content: str = scrape_page(url)
 
-            relevant_data: dict = extract_relevant_data(page_content)
+            relevant_data: dict = extract_relevant_data(page_content, retry)
             file_path: str = f"{data_path}/output_{counter}.json"
             counter += 1
 
@@ -118,7 +118,7 @@ def scrape_page(url: str) -> str:
     return response.text
 
 
-def extract_relevant_data(page_content: str) -> dict:
+def extract_relevant_data(page_content: str, retry: bool = True) -> dict:
     """
     Extract the relevant data from the page content.
 
@@ -162,6 +162,9 @@ def extract_relevant_data(page_content: str) -> dict:
 
             break
         except Exception as e:
+            if not retry:
+                raise Exception(f"\nError: {e}")
+
             print(Fore.RED, f"\nError: {e}\nEsperando 10 segs para continuar...")
 
             time.sleep(10)

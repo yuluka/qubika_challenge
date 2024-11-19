@@ -9,6 +9,7 @@ from tkinter import messagebox
 
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 
@@ -66,6 +67,28 @@ AVAILABLE_VOICES: dict[str, list[str]] = {
     ]
 }
 
+COMPARISON_NEWS_PATH: str = "data/comparison"
+
+SUMARIZATION_NEWS_CONTEXT: str = """
+Tu tarea es resumir el siguiente texto (contenido scrapeado de una página web de una noticia): \n{page_content}
+
+Por favor, sigue estas instrucciones al pie de la letra:
+
+1. **Resumen de la noticia**: Resumir el contenido del texto en un párrafo de 3 a 5 oraciones y extraer la lista de puntos clave.
+2. **Sin contenido adicional:** No incluir ningún texto, comentario o explicación adicional en la respuesta.
+3. **Respuesta vacía:** Si no puedes resumir la noticia, devuelve una cadena vacía ('').
+4. **Sólo datos directos:** Tu salida debe contener sólo los datos solicitados explícitamente, sin ningún otro texto.
+5. **Formato de salida:** La salida debe estar en el siguiente formato: 
+```
+Resumen: 
+
+«Resumen de la noticia aquí»
+
+Puntos clave:
+
+«Lista de puntos clave aquí»
+```
+"""
 
 def init_config():
     """
@@ -191,13 +214,13 @@ def start_ui():
 
     .comparison-bubble {
         display: inline-block;
-        background-color: #00bcd4; /* Color de fondo */
-        color: white; /* Color del texto */
-        padding: 10px 20px; /* Espaciado interno */
-        border-radius: 50px; /* Bordes redondeados para la forma */
-        text-align: center; /* Centrar el texto */
-        font-size: 16px; /* Tamaño de la fuente */
-        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Sombra para efecto 3D */
+        background-color: #00bcd4;
+        color: white; 
+        padding: 10px 20px;
+        border-radius: 50px;
+        text-align: center; 
+        font-size: 16px; 
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); 
     }
     </style>
     """,
@@ -328,8 +351,29 @@ def start_comparison_window():
         response2: str = "No se han proporcionado noticias para comparar."
 
         if st.session_state.news1 != "" and st.session_state.news2 != "":
-            response1: str = ""
-            response2: str = ""
+            print("Scraping news...", st.session_state.news1, st.session_state.news2)
+            try:
+                scraping_result: bool = scrape_pages(COMPARISON_NEWS_PATH, [st.session_state.news1, st.session_state.news2], False)
+
+                if scraping_result:
+                    news1: dict = load_json(f"{COMPARISON_NEWS_PATH}/output_0.json")
+                    news2: dict = load_json(f"{COMPARISON_NEWS_PATH}/output_1.json")
+
+                    message1: str = SUMARIZATION_NEWS_CONTEXT.format(page_content=news1["Contenido"])
+                    message2: str = SUMARIZATION_NEWS_CONTEXT.format(page_content=news2["Contenido"])
+
+                    st.session_state.summarization1 = st.session_state.comparison_bot_1.chat(message1)
+                    st.session_state.summarization2 = st.session_state.comparison_bot_2.chat(message2)
+                
+                else:
+                    response1 = f"Error durante la comparación.\nPor favor, intenta de nuevo, o trata con otras fuentes."
+                    response2 = f"Error durante la comparación.\nPor favor, intenta de nuevo, o trata con otras fuentes."
+            
+            except Exception as e:
+                response1 = f"Error durante la comparación.\nPor favor, intenta de nuevo, o trata con otras fuentes."
+                response2 = f"Error durante la comparación.\nPor favor, intenta de nuevo, o trata con otras fuentes."
+
+                print("Error during comparison:", e)
 
         # response1: str = st.session_state.comparison_bot_1.chat(st.session_state.news1)
         # response2: str = st.session_state.comparison_bot_2.chat(st.session_state.news2)
@@ -338,9 +382,9 @@ def start_comparison_window():
         # col2.write(response2)
 
         with col1:
-            st.markdown(f'<div class="comparison-bubble">{response1}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="comparison-bubble">{response1 if not "summarization1" in st.session_state else st.session_state.summarization1}</div>', unsafe_allow_html=True)
         with col2:
-            st.markdown(f'<div class="comparison-bubble">{response2}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="comparison-bubble">{response2 if not "summarization2" in st.session_state else st.session_state.summarization2}</div>', unsafe_allow_html=True)
 
 
 def start_comparison_side_bar():
@@ -515,6 +559,22 @@ def chat(message: str) -> str:
     st.session_state.messages.append({"role": "assistant", "content": response})
 
     return response
+
+
+def load_json(file_path: str) -> dict:
+    """
+    Load a JSON file from the given file path.
+
+    :param file_path: The path to the JSON file.
+    :type file_path: str
+    :return: The data from the JSON file.
+    :rtype: dict
+    """
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        data: dict = json.load(file)
+
+    return data
 
 
 def speech_response(response: str):
