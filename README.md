@@ -14,6 +14,8 @@ La idea del proyecto es la creación de una aplicación que use la técnica Retr
 
 ## Cómo usar
 
+**Video demostración**: Este [video](https://youtu.be/XtqtYcyASLw) contiene una demostración del funcionamiento del proyecto.
+
 Para usar este proyecto, deberás seguir estos pasos:
 
 1. Instalar las dependencias listadas en `requirements.txt`:
