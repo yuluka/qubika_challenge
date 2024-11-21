@@ -16,7 +16,7 @@ La idea del proyecto es la creación de una aplicación que use la técnica Retr
 
 Este video contiene una demostración del funcionamiento del proyecto:
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/XtqtYcyASLw?si=FsnXnnTlKtfkixvP" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![Video en YouTube](https://img.youtube.com/vi/XtqtYcyASLw/0.jpg)](https://www.youtube.com/watch?v=XtqtYcyASLw)
 
 
 ## Cómo usar
