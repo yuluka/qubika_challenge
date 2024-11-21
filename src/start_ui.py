@@ -140,7 +140,7 @@ def init_config():
         st.session_state.selected_voice_gender = "male"
 
     if not "selected_voice" in st.session_state:
-        st.session_state.selected_voice = "es-US-Neural2-C"
+        st.session_state.selected_voice = "es-US-Wavenet-B"
 
     if not "text2speech" in st.session_state:
         text2speech: TextToSpeech = TextToSpeech(
@@ -431,6 +431,16 @@ def start_comparison_side_bar():
 
         st.session_state.comparison_bot_1 = comparison_bot
         st.session_state.comparison_bot_2 = comparison_bot
+
+    if not "text2speech_comparison" in st.session_state:
+        text2speech: TextToSpeech = TextToSpeech(
+            st.session_state.google_api_key,
+            st.session_state.selected_language,
+            st.session_state.selected_voice,
+            st.session_state.selected_voice_gender
+        )
+
+        st.session_state.text2speech_comparison = text2speech
 
     with st.sidebar:
         st.header("Configuración")
