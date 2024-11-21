@@ -184,6 +184,12 @@ def start_ui():
         margin-top: 10px;
     }
 
+    .st-key-btn_read_summary1, .st-key-btn_read_summary2 {
+        display: flex;
+        width: 46px;
+        margin-left: auto;
+    }
+
     [data-testid="stChatMessageAvatarUser"], [data-testid="stChatMessageAvatarAssistant"] {
         display: none;
     }
@@ -260,7 +266,7 @@ def start_main_window():
         with st.chat_message("assistant"):
             st.markdown(response)
 
-        speech_response(response)
+        speech_response(response, st.session_state.text2speech)
 
 
 def start_main_side_bar():
@@ -346,6 +352,9 @@ def start_comparison_window():
     col1.write("<h2 style='text-align: center;'>Noticia 1</h2>", unsafe_allow_html=True)
     col2.write("<h2 style='text-align: center;'>Noticia 2</h2>", unsafe_allow_html=True)
 
+    if "summarization1" in st.session_state and "summarization2" in st.session_state:
+        render_comparison_results(col1, col2, st.session_state.summarization1, st.session_state.summarization2)
+
     if st.button("Comparar", key="btn_compare"):
         response1: str = "No se han proporcionado noticias para comparar."
         response2: str = "No se han proporcionado noticias para comparar."
@@ -375,16 +384,33 @@ def start_comparison_window():
 
                 print("Error during comparison:", e)
 
-        # response1: str = st.session_state.comparison_bot_1.chat(st.session_state.news1)
-        # response2: str = st.session_state.comparison_bot_2.chat(st.session_state.news2)
+        render_comparison_results(col1, col2, response1, response2)
 
-        # col1.write(response1)
-        # col2.write(response2)
 
-        with col1:
-            st.markdown(f'<div class="comparison-bubble">{response1 if not "summarization1" in st.session_state else st.session_state.summarization1}</div>', unsafe_allow_html=True)
-        with col2:
-            st.markdown(f'<div class="comparison-bubble">{response2 if not "summarization2" in st.session_state else st.session_state.summarization2}</div>', unsafe_allow_html=True)
+def render_comparison_results(col1, col2, response1: str, response2: str):
+    """
+    Render the comparison results of the two news articles.
+    """
+
+    with col1:
+            if not "summarization1" in st.session_state:
+                st.markdown(f'<div class="comparison-bubble">{response1}</div>', unsafe_allow_html=True)
+
+            else:
+                st.markdown(f'<div class="comparison-bubble">{st.session_state.summarization1}</div>', unsafe_allow_html=True)
+                
+                if st.button("", key="btn_read_summary1", type="secondary", icon=":material/play_arrow:"):
+                    speech_response(st.session_state.summarization1, st.session_state.text2speech_comparison)
+
+    with col2:
+        if not "summarization2" in st.session_state:
+            st.markdown(f'<div class="comparison-bubble">{response2}</div>', unsafe_allow_html=True)
+
+        else:
+            st.markdown(f'<div class="comparison-bubble">{st.session_state.summarization2}</div>', unsafe_allow_html=True)
+            
+            if st.button("", key="btn_read_summary2", icon=":material/play_arrow:"):
+                speech_response(st.session_state.summarization2, st.session_state.text2speech_comparison)
 
 
 def start_comparison_side_bar():
@@ -410,8 +436,8 @@ def start_comparison_side_bar():
         st.header("Configuración")
 
         st.write("<b>Noticias a comparar</b>", unsafe_allow_html=True)
-        st.session_state.news1 = st.text_input("Noticias a comparar", label_visibility="collapsed", placeholder="Noticia 1")
-        st.session_state.news2 = st.text_input("Noticias a comparar 2", label_visibility="collapsed", placeholder="Noticia 2")
+        st.session_state.news1 = st.text_input("Noticias a comparar", label_visibility="collapsed", placeholder="Noticia 1", value="" if not "news1" in st.session_state else st.session_state.news1)
+        st.session_state.news2 = st.text_input("Noticias a comparar 2", label_visibility="collapsed", placeholder="Noticia 2", value="" if not "news2" in st.session_state else st.session_state.news2)
 
         st.header("Configuración del Modelo")
 
@@ -525,6 +551,13 @@ def reload_comparison_model():
 
     st.session_state.api_key = os.getenv("OPENAI_API_KEY") if st.session_state.selected_provider_comparison == "openai" else os.getenv("GROQ_API_KEY")
 
+    text2speech: TextToSpeech = TextToSpeech(
+        st.session_state.google_api_key,
+        st.session_state.selected_language_comparison,
+        st.session_state.selected_voice_comparison,
+        st.session_state.selected_voice_gender_comparison
+    )
+
     comparison_bot: Bot = Bot(
         st.session_state.api_key,
         st.session_state.selected_model_comparison,
@@ -535,6 +568,7 @@ def reload_comparison_model():
 
     st.session_state.comparison_bot_1 = comparison_bot
     st.session_state.comparison_bot_2 = comparison_bot
+    st.session_state.text2speech_comparison = text2speech
 
 
 def chat(message: str) -> str:
@@ -577,7 +611,7 @@ def load_json(file_path: str) -> dict:
     return data
 
 
-def speech_response(response: str):
+def speech_response(response: str, text2speech_instance: TextToSpeech):
     """
     Sends a speech response to the user.
 
@@ -585,7 +619,8 @@ def speech_response(response: str):
     :type response: str
     """
 
-    st.session_state.text2speech.speech_response(response)
+    # st.session_state.text2speech.speech_response(response)
+    text2speech_instance.speech_response(response)
 
 
 start_ui()
