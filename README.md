@@ -12,9 +12,14 @@ Es repositorio contiene la implementación de una aplicación, potenciada por mo
 La idea del proyecto es la creación de una aplicación que use la técnica Retrieval-Augmented Generation (RAG), para permitir al modelo saber acerca de temas especializados y basar sus respuestas en estos, con la particularidad de que la información para nutrir esta Base de Conocimiento debe extraerse de páginas web de noticias, mediante web scraping. Este proyecto fue propuesto por la empresa [Qubika](https://qubika.com).
 
 
-## Cómo usar
+## Video demostración
 
-**Video demostración**: Este [video](https://youtu.be/XtqtYcyASLw) contiene una demostración del funcionamiento del proyecto.
+Este video contiene una demostración del funcionamiento del proyecto:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/XtqtYcyASLw?si=FsnXnnTlKtfkixvP" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
+## Cómo usar
 
 Para usar este proyecto, deberás seguir estos pasos:
 
