@@ -7,7 +7,7 @@ Yuluka Gigante Muriel
 
 ## Resumen
 
-Es repositorio contiene la implementación de una aplicación, potenciada por modelos de IA, que permite la interacción con un chatbot espcializado, por medio de una Interfaz Gráfica de Usuario (GUI) web.
+Este repositorio contiene la implementación de una aplicación, potenciada por modelos de IA, que permite la interacción con un chatbot espcializado, por medio de una Interfaz Gráfica de Usuario (GUI) web.
 
 La idea del proyecto es la creación de una aplicación que use la técnica Retrieval-Augmented Generation (RAG), para permitir al modelo saber acerca de temas especializados y basar sus respuestas en estos, con la particularidad de que la información para nutrir esta Base de Conocimiento debe extraerse de páginas web de noticias, mediante web scraping. Este proyecto fue propuesto por la empresa [Qubika](https://qubika.com).
 
